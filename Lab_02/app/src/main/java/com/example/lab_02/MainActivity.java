@@ -1,4 +1,4 @@
-package com.example.lab02;
+package com.example.lab_02;
 
 import android.os.Bundle;
 import android.view.View;
