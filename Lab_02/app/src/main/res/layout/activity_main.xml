@@ -7,13 +7,110 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+
     <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:background="#666666"
+        android:text="Lab02"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
+        android:gravity="center"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 單選：選擇系所 -->
+    <Button
+        android:id="@+id/btnSingle"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:text="選擇系所"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="20dp" />
+
+    <!-- 目前查詢系所（整排放在同一個 row 裡，夾在兩個按鈕之間） -->
+    <LinearLayout
+        android:id="@+id/deptRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/btnSingle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:id="@+id/tvDeptTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="目前查詢系所："
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333" />
+
+        <TextView
+            android:id="@+id/tvDeptValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="（未選擇）"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#5E35B1"
+            android:layout_marginStart="4dp"/>
+    </LinearLayout>
+
+    <!-- 複選：選修科目 -->
+    <Button
+        android:id="@+id/btnMulti"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:text="選修科目"
+        app:layout_constraintTop_toBottomOf="@id/deptRow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp" />
+
+    <!-- 已選課程標題 -->
+    <TextView
+        android:id="@+id/tvCoursesTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="所有已選課程："
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        app:layout_constraintTop_toBottomOf="@id/btnMulti"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="20dp" />
+
+    <!-- 已選課程列表 -->
+    <LinearLayout
+        android:id="@+id/llCourses"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/tvCoursesTitle"
+        app:layout_constraintVertical_bias="0.004" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
