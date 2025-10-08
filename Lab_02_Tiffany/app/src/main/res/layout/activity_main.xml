@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+
+    <TextView
+        android:id="@+id/lblOutput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="這裡顯示複選結果"
+        android:textSize="18sp"
+        android:padding="8dp"
+        android:background="#EEEEEE"/>
+
+
+    <Button
+        android:id="@+id/btnMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="訊息對話方塊"
+        android:layout_marginTop="16dp"/>
+
+
+    <Button
+        android:id="@+id/btnConfirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="確認對話方塊"
+        android:layout_marginTop="12dp"/>
+
+
+    <Button
+        android:id="@+id/btnSingle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="單選對話方塊"
+        android:layout_marginTop="12dp"/>
+
+
+    <Button
+        android:id="@+id/btnMulti"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="複選對話方塊"
+        android:layout_marginTop="12dp"/>
+
+
+</LinearLayout>
