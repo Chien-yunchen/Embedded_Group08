@@ -1,5 +1,6 @@
 package com.team8_lab3;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
 import android.text.TextUtils;
@@ -24,12 +25,24 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 import android.content.Context;
 import android.view.inputmethod.InputMethodManager;
 
 public class MainActivity extends AppCompatActivity {
     private static final int READ_BLOCK_SIZE = 1024;
+
+    //sharedPreferences keys
+    private static final String PREF_AMOUNT = "pref_amount";
+    private static final String PREF_RATE = "pref_rate";
+    //sharedPreference
+    private SharedPreferences prefs;
+    //IU:台幣美金換算
+    private EditText txtAmount;
+    private EditText txtRate;
+    private TextView txtResult;
+    private Button btnConvert;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +95,46 @@ public class MainActivity extends AppCompatActivity {
             String text = readText(fileName);
             if (text != null) etContent.setText(text);
         });
+
+        //台被->美金
+        prefs = getPreferences(MODE_PRIVATE);
+
+        txtAmount = findViewById(R.id.txtAmount);
+        txtRate = findViewById(R.id.txtRate);
+        txtResult = findViewById(R.id.txtResult);
+        btnConvert = findViewById(R.id.btnConvert);
+
+        if(txtAmount != null && txtRate != null){
+            //載入偏好 沒有就預設
+            String amount = prefs.getString(PREF_AMOUNT, "1000");
+            float rate = prefs.getFloat(PREF_RATE, 32.5F);
+            txtAmount.setText(amount);
+            txtRate.setText(String.valueOf(rate));
+        }
+
+        if (btnConvert != null){
+            btnConvert.setOnClickListener(v -> {
+                if(txtAmount == null || txtRate == null || txtResult == null){
+                    return;
+                }
+
+                String amtStr = txtAmount.getText().toString().trim();
+                String rateStr = txtRate.getText().toString().trim();
+
+                double amt = safeParseDouble(amtStr, 0.0);
+                double r = safeParseDouble(rateStr, 0.0);
+
+                double usd = (r > 0) ? amt/r : 0.0;
+                txtResult.setText(String.format(Locale.TAIWAN, "美金: %.10f", usd));
+
+                //寫回偏好(非同步)
+                prefs.edit()
+                        .putString(PREF_AMOUNT, amtStr.isEmpty()? "0" : amtStr)
+                        .putFloat(PREF_RATE, (float) r)
+                        .apply();
+            });
+        }
+
     }
     private boolean writeText(String fileName, String text) {
         try (FileOutputStream out = openFileOutput(fileName, MODE_PRIVATE);
@@ -128,6 +181,27 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "讀取失敗", Toast.LENGTH_SHORT).show();
             return null;
         }
+    }
+
+    //匯率轉換
+    @Override
+    protected  void onPause(){
+        super.onPause();
+        //保險再存一次偏好
+        if(txtAmount != null && txtRate != null){
+            //載入偏好 沒有就預設
+            String amtStr = txtAmount.getText().toString().trim();
+            String rateStr = txtRate.getText().toString().trim();
+            double r = safeParseDouble(rateStr, 0.0);
+
+            prefs.edit()
+                    .putString(PREF_AMOUNT, amtStr.isEmpty()? "0" : amtStr)
+                    .putFloat(PREF_RATE, (float) r)
+                    .apply();
+        }
+    }
+    private double safeParseDouble(String s, double fallback){
+        try{return Double.parseDouble(s);} catch (Exception e){return fallback;}
     }
 
 }
