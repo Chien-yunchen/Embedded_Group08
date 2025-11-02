@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 開放整個 app 的外部專屬目錄（含 Movies/） -->
+    <external-files-path name="app_external" path="." />
+    <!-- 如果只想開 Movies 子資料夾，也可以改成： -->
+    <!-- <external-files-path name="movies_only" path="Movies/" /> -->
+
+    <!-- 可選：若將來想暫存到 cache，也可一併開放 -->
+    <!-- <cache-path name="cache" path="." /> -->
+</paths>
