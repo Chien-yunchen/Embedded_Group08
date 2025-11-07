@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- 建議宣告相機硬體為「可用但非必需」，避免在沒有相機的裝置/ChromeOS 產生安裝限制或 Lint 警告 -->
+
+    <!-- 相機硬體（可選） -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-    <!-- 需要的權限：相機 + 錄音（注意：沒有 RECORD_VIDEO 這個權限）-->
+    <!-- 權限 -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -20,7 +21,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Lab05_Group08">
 
-        <!-- ✅ FileProvider：用來把 app 內部檔案包成 content:// Uri（API 23–28 需要） -->
+        <!-- FileProvider -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -31,25 +32,32 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- 影片播放器頁（用 VideoView 播放剛錄的檔）-->
+        <!-- 相機頁（沒有 LAUNCHER；直向） -->
+        <activity
+            android:name=".CameraView"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait" />
+
+        <!-- 播放錄影 -->
         <activity
             android:name=".VideoPlayer"
             android:exported="false" />
 
-        <!-- 內建錄影頁（進去就用 MediaRecorder + SurfaceView 預覽錄影）-->
+        <!-- 自家錄影頁 -->
         <activity
             android:name=".VideoRecorder"
             android:exported="false"
             android:screenOrientation="landscape" />
+
+        <!-- 入口 -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+    </application>
 </manifest>

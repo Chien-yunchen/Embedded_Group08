@@ -1,42 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+    android:orientation="vertical"
+    android:padding="16dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:orientation="vertical" android:padding="16dp"
-        android:layout_width="match_parent" android:layout_height="match_parent">
+    <Button
+        android:id="@+id/btnBuiltIn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="開始錄影（MediaRecorder）"/>
 
-        <Button
-            android:id="@+id/btnBuiltIn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="開始錄影（MediaRecorder）"/>
+    <Button
+        android:id="@+id/btnSystemCam"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="使用內建程式相機錄影（Intent）"
+        android:layout_marginTop="8dp"/>
 
-        <Button
-            android:id="@+id/btnSystemCam"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="使用內建程式相機錄影（Intent）"
-            android:layout_marginTop="8dp"/>
+    <Button
+        android:id="@+id/btnPlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="播放錄影"
+        android:layout_marginTop="8dp"/>
 
-        <Button
-            android:id="@+id/btnPlay"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="播放錄影"
-            android:layout_marginTop="8dp"/>
+    <Button
+        android:id="@+id/btnSurfacePhoto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="內建相機(自家)－SurfaceView 拍照"
+        android:layout_marginTop="8dp"/>
 
-        <TextView
-            android:id="@+id/txtPath"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="檔案路徑會顯示在這裡"
-            android:layout_marginTop="12dp"/>
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+        android:id="@+id/txtPath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="檔案路徑會顯示在這裡"
+        android:layout_marginTop="12dp"/>
+</LinearLayout>

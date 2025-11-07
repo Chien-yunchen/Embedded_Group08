@@ -39,23 +39,36 @@ public class VideoRecorder extends AppCompatActivity {
         setContentView(root);
     }
 
+    /** 停止錄影並帶結果回 MainActivity */
     private void stopAndReturn() {
+        if (preview != null) {
+            // 停止並讓 preview 把資源收乾淨（Camera / MediaRecorder 都在裡面）
+            preview.stopRecording();
+        }
         String path = (preview != null) ? preview.getLastPath() : null;
-        if (preview != null) preview.stopRecording();
+
         Intent data = new Intent();
-        if (path != null) data.putExtra(EXTRA_OUTPUT_PATH, path);
+        if (path != null && !path.isEmpty()) {
+            data.putExtra(EXTRA_OUTPUT_PATH, path);
+        }
         setResult(RESULT_OK, data);
         finish();
     }
 
     @Override
     public void onBackPressed() {
-        stopAndReturn(); // 返回鍵也能停止
+        // 「返回鍵」行為與按停止一樣：先優雅收尾，再呼叫 super 滿足 Lint
+        stopAndReturn();
+        try {
+            super.onBackPressed();
+        } catch (Exception ignored) {
+            // 已經 finish() 過了，再呼叫 super 可能多一次 finish，不影響流程
+        }
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // 音量鍵也能停止
+        // 讓音量鍵也能停止
         if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             stopAndReturn();
             return true;
@@ -65,7 +78,8 @@ public class VideoRecorder extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        // 離開頁面時再保險釋放一次
         if (preview != null) preview.releaseIfAny();
+        super.onDestroy();
     }
 }
