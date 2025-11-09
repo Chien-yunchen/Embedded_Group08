@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="16dp">
+
+        <!-- 狀態列（共用） -->
+        <TextView
+            android:id="@+id/output"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="就緒" android:textSize="18sp" android:paddingBottom="12dp"/>
+
+        <!-- ===== 音樂播放器 ===== -->
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="音樂播放器" android:textStyle="bold"
+            android:textSize="16sp" android:paddingTop="8dp" android:paddingBottom="6dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- 開始 / 繼續按鈕（放最左邊） -->
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="開始 / 繼續"
+                android:onClick="start_Click"/>
+
+            <!-- 暫停按鈕（中間） -->
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="暫停"
+                android:onClick="pause_Click"/>
+
+            <!-- 停止按鈕（最右邊） -->
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="停止"
+                android:onClick="stop_Click"/>
+        </LinearLayout>
+
+        <!-- 分隔線 -->
+        <View
+            android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#DDDDDD" android:layout_marginTop="12dp" android:layout_marginBottom="12dp"/>
+
+        <!-- ===== 視訊播放器 ===== -->
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="視訊播放器" android:textStyle="bold"
+            android:textSize="16sp" android:paddingBottom="6dp"/>
+        <VideoView
+            android:id="@+id/video1"
+            android:layout_width="match_parent" android:layout_height="200dp"
+            android:layout_marginBottom="8dp"/>
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="播放影片" android:onClick="videoPlay_Click"/>
+            <Button
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="停止播放" android:onClick="videoStop_Click"/>
+        </LinearLayout>
+
+        <!-- 分隔線 -->
+        <View
+            android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#DDDDDD" android:layout_marginTop="12dp" android:layout_marginBottom="12dp"/>
+
+        <!-- ===== 錄音程式 ===== -->
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="錄音程式" android:textStyle="bold"
+            android:textSize="16sp" android:paddingBottom="6dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/start"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="開始錄音" android:onClick="recStart_Click"/>
+
+            <Button
+                android:id="@+id/stop"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="停止錄音" android:onClick="recStop_Click"/>
+
+            <!-- 新增播放錄音 -->
+            <Button
+                android:id="@+id/play_rec"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="播放錄音" android:onClick="recPlay_Click"/>
+        </LinearLayout>
+
+        <!-- 分隔線 -->
+        <View
+            android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#DDDDDD" android:layout_marginTop="12dp" android:layout_marginBottom="12dp"/>
+
+        <!-- 2D 繪圖 -->
+        <Button
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Open 2D Canvas" android:onClick="openDraw_Click"/>
+    </LinearLayout>
+</ScrollView>
