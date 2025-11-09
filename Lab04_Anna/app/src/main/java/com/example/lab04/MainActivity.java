@@ -1,12 +1,16 @@
 package com.example.lab04; // ← 請改成你的實際 package 名稱
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.*;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.AttributeSet;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import androidx.annotation.NonNull;
@@ -138,13 +142,11 @@ public class MainActivity extends AppCompatActivity {
     // ================= 錄音控制 =================
 
     public void recStart_Click(View v) {
-        // 權限不在 → 先申請，等待回調
         if (!hasPerm(Manifest.permission.RECORD_AUDIO)) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQ_AUDIO);
             return;
         }
-        // 權限在但尚未 prepare → 先初始化
-        if (!recorderReady) {
+        if (!recorderReady) {           // ← 這時才準備
             initRecorder();
             if (!recorderReady) {
                 if (output != null) output.setText("錄音初始化失敗");
@@ -163,22 +165,22 @@ public class MainActivity extends AppCompatActivity {
 
     public void recStop_Click(View v) {
         try { recorder.stop(); } catch (Exception ignore) {}
+        // 釋放，確保檔案寫入完成且關檔
+        try { recorder.release(); } catch (Exception ignore) {}
+        recorder = null;
+        recorderReady = false;
+
         if (recStartBtn != null) recStartBtn.setEnabled(true);
         if (recStopBtn  != null) recStopBtn.setEnabled(false);
-        output.setText("錄音停止");
 
-        // 停止後可再次錄：重新 prepare
-        recorderReady = false;
-        initRecorder();
-
-        // 啟用「播放錄音」按鈕
+        // 確認檔案大小 >0 再開放播放
         Button recPlayBtn = findViewById(R.id.play_rec);
-        if (recPlayBtn != null) recPlayBtn.setEnabled(true);
+        if (recPlayBtn != null) recPlayBtn.setEnabled(recordFile != null && recordFile.exists() && recordFile.length() > 0);
 
-        // （選用）立即自動播放剛剛錄好的檔案：
-        // playRecording();
+        if (output != null) output.setText(
+                (recordFile != null ? "錄音停止，大小=" + recordFile.length() + " bytes" : "錄音停止")
+        );
     }
-
     public void recPlay_Click(View v) {
         playRecording();
     }
@@ -266,69 +268,92 @@ public class MainActivity extends AppCompatActivity {
     // ================= 2D 繪圖 =================
 
     public void openDraw_Click(View v) {
-        setContentView(new Draw2D(this));
+        FrameLayout root = new FrameLayout(this);
+
+        Draw2D canvas = new Draw2D(this);
+        root.addView(canvas, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+
+        Button back = new Button(this);
+        back.setText("返回");
+        back.setOnClickListener(x -> {
+            setupMainLayout();
+            if (output != null) output.setText("就緒");
+        });
+        int m = (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 12, getResources().getDisplayMetrics());
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.END | Gravity.BOTTOM;
+        lp.setMargins(20, 20, 20, 20);   // 左、上、右、下邊距
+
+        root.addView(back, lp);
+
+        setContentView(root);
         inDrawMode = true;
-        // 這個畫面沒有 output TextView，避免 NPE 不再動它
-        Toast.makeText(this, "已進入 2D 畫布模式，按返回鍵可回主畫面", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "已進入 2D 畫布模式，按返回鍵或按鈕可回主畫面", Toast.LENGTH_SHORT).show();
     }
 
-    private static class Draw2D extends View {
-        private final Paint paint = new Paint();
+    public static class Draw2D extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        public Draw2D(MainActivity ctx) { super(ctx); }
+        public Draw2D(Context ctx) { super(ctx); }                          // XML/程式都可用
 
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+
+            float w = canvas.getWidth();
+            float h = canvas.getHeight();
+            float centerX = w / 2f;
+            float centerY = h / 2f;
 
             // 背景
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.WHITE);
             canvas.drawPaint(paint);
 
-            // 圓形
+            // 圓形（置中上方）
             paint.setAntiAlias(true);
             paint.setColor(Color.RED);
-            canvas.drawCircle(80f, 60f, 40f, paint);
+            canvas.drawCircle(centerX, centerY - 200f, 60f, paint);
 
-            // 長方形
+            // 長方形（置中）
             paint.setColor(Color.BLUE);
-            canvas.drawRect(20f, 120f, 200f, 260f, paint);
+            canvas.drawRect(centerX - 150f, centerY - 80f, centerX + 150f, centerY + 80f, paint);
 
-            // 文字
+            // 文字（置中）
             paint.setColor(Color.GREEN);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setTextSize(40f);
-            canvas.drawText("我的畫布!", 50f, 340f, paint);
+            paint.setTextSize(48f);
+            paint.setTextAlign(Paint.Align.CENTER);   // 這行重要！
+            canvas.drawText("我的畫布!", centerX, centerY + 180f, paint);
 
-            // 旋轉文字
+            // 旋轉文字（也置中）
             canvas.save();
             paint.setColor(Color.BLACK);
             paint.setTextSize(36f);
-            canvas.rotate(-45f, 300f, 300f);
-            canvas.drawText("旋轉的文字!", 300f, 300f, paint);
+            paint.setTextAlign(Paint.Align.CENTER);
+            canvas.rotate(-45f, centerX + 200f, centerY + 150f);
+            canvas.drawText("旋轉的文字!", centerX + 200f, centerY + 150f, paint);
             canvas.restore();
-
-            // 圖片（示範）
-            int resId = getResources().getIdentifier("ic_launcher_foreground", "drawable", getContext().getPackageName());
-            if (resId != 0) {
-                Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-                canvas.drawBitmap(bitmap, 50f, 400f, paint);
-            }
         }
+
     }
 
-    // 返回鍵可從畫布回主畫面（建議開啟，體驗較佳）
-//    @Override
-//    public void onBackPressed() {
-//        if (inDrawMode) {
-//            setupMainLayout();
-//            inDrawMode = false;
-//            if (output != null) output.setText("就緒");
-//        } else {
-//            super.onBackPressed();
-//        }
-//    }
+    private Bitmap bitmap; // 這個在 Draw2D 內
+
+
+//     返回鍵可從畫布回主畫面（建議開啟，體驗較佳）
+    @Override
+    public void onBackPressed() {
+        if (inDrawMode) {
+            setupMainLayout();     // ← 切回主畫面並重新綁定按鈕
+        } else {
+            super.onBackPressed();
+        }
+    }
 
 
     // 資源釋放
