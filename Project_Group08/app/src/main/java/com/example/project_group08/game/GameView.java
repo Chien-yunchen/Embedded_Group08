@@ -1,4 +1,4 @@
-package com.example.project_group08;
+package com.example.project_group08.game;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -6,9 +6,6 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-
-import com.example.project_group08.ui.HpBar;
-import com.example.project_group08.ui.GameOverUI;
 
 /**
  * 遊戲主視圖
@@ -53,6 +50,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
      */
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        // 重新初始化 GameOverUI（確保寬高正確）
+        gameOverUI = new GameOverUI(getWidth(), getHeight());
+
         if (gameThread.getState() == Thread.State.NEW) {
             gameThread.start();
         }
@@ -106,7 +106,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
      */
     public void draw(Canvas canvas) {
         if (canvas == null) return;
-
+        super.draw(canvas);
         // 清空畫布（黑色背景）
         canvas.drawColor(android.graphics.Color.BLACK);
 
@@ -116,7 +116,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // 繪製血條
         hpBar.draw(canvas);
 
-        // 最後繪製 Game Over 畫面（這樣才能顯示在最上層）
+        // 最後繪製遊戲結束畫面（這樣才能顯示在最上層）
         gameOverUI.draw(canvas);
     }
 
@@ -130,10 +130,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                // 如果遊戲結束，檢查是否點擊了 START 按鈕
+                // 如果遊戲結束，檢查是否點擊了重新開始按鈕
                 if (gameOverUI.getIsGameOver()) {
                     if (gameOverUI.onTouchEvent(touchX, touchY)) {
-                        restartGame();  // 按下 START 才能重新開始
+                        restartGame();  // 按下按鈕重新開始遊戲
                         return true;
                     }
                 } else {

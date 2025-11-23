@@ -36,7 +36,8 @@ public class HpBar {
 
         whitePaint = new Paint();
         whitePaint.setColor(Color.WHITE);
-        whitePaint.setTextSize(24);
+        whitePaint.setTextSize(40);  // 改大到 40
+        whitePaint.setTextAlign(Paint.Align.LEFT);
     }
 
     /**
@@ -71,9 +72,9 @@ public class HpBar {
         // 繪製血條（綠→紅漸變）
         canvas.drawRect(x, y, x + currentBarWidth, y + barHeight, hpColor);
 
-        // 顯示 HP 數字
+        // 顯示 HP 數字（文字更大）
         canvas.drawText("HP: " + (int)currentHP + "/" + (int)maxHP,
-                x + barWidth + 20, y + barHeight, whitePaint);
+                x + barWidth + 30, y + barHeight - 5, whitePaint);
     }
 
     /**
