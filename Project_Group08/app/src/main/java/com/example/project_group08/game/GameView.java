@@ -1,11 +1,18 @@
 package com.example.project_group08.game;
 
+import com.example.project_group08.ui.HpBar;
+import com.example.project_group08.ui.GameOverUI;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
+import com.example.project_group08.player.Player;
+import com.example.project_group08.player.AnimationFactory;   // ★ 新增：匯入動畫工廠
 
 /**
  * 遊戲主視圖
@@ -16,6 +23,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private GameThread gameThread;
     private HpBar hpBar;
     private GameOverUI gameOverUI;
+
+    // A：新增的角色與地板參數
+    private Player player;
+    private Paint playerPaint;
+    private float groundY;           // 地板高度（腳站的位置）
 
     private long lastUpdateTime = 0;
     private float gameTime = 0;  // 遊戲累計時間（秒）
@@ -38,9 +50,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private void init() {
         getHolder().addCallback(this);
 
-        // 初始化 UI 元件
+        // 初始化 UI 元件（先用預設，真正尺寸在 surfaceCreated 再更新一次）
         hpBar = new HpBar();
         gameOverUI = new GameOverUI(getWidth(), getHeight());
+
+        // 初始化畫 Player 用的畫筆（現在主要用來畫 debug 或碰撞框）
+        playerPaint = new Paint();
+        playerPaint.setColor(Color.WHITE);
+        playerPaint.setStyle(Paint.Style.FILL);
 
         gameThread = new GameThread(getHolder(), this);
     }
@@ -50,16 +67,32 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
      */
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        int width = getWidth();
+        int height = getHeight();
+
         // 重新初始化 GameOverUI（確保寬高正確）
-        gameOverUI = new GameOverUI(getWidth(), getHeight());
+        gameOverUI = new GameOverUI(width, height);
+
+        // 設定地板高度（暫時用畫面高度的 3/4，之後 B 可以改）
+        groundY = height * 0.75f;
+
+        // 建立 Player（X 固定在畫面 1/4，由 Player 裡面自己處理）
+        player = new Player(width, groundY);
+
+        // ★ 在這裡幫 Player 設定跑步與跳躍動畫
+        player.setAnimations(
+                AnimationFactory.createRunAnimation(getContext()),
+                AnimationFactory.createJumpAnimation(getContext())
+        );
 
         if (gameThread.getState() == Thread.State.NEW) {
+            gameThread.setRunning(true);
             gameThread.start();
         }
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
@@ -81,22 +114,32 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     public void update() {
         // 計算 deltaTime（每幀時間間隔）
         long currentTime = System.currentTimeMillis();
-        float deltaTime = lastUpdateTime == 0 ? 0.016f : (currentTime - lastUpdateTime) / 1000f;
+        float deltaTime = (lastUpdateTime == 0) ? 0.016f : (currentTime - lastUpdateTime) / 1000f;
         lastUpdateTime = currentTime;
 
-        // 如果遊戲未結束，更新遊戲時間和血條
+        // 遊戲未結束才更新
         if (!gameOverUI.getIsGameOver()) {
+
+            // 更新玩家（含跳躍重力 + 動畫）
+            if (player != null) {
+                player.update();
+            }
+
+            // 更新遊戲時間
             gameTime += deltaTime;
 
             // 更新血條（每幀減少 HP）
             hpBar.update(deltaTime);
 
-            // 更新存活時間
+            // 更新存活時間顯示
             gameOverUI.updateSurvivalTime(deltaTime);
 
             // 檢查遊戲是否結束
             if (hpBar.isGameOver()) {
                 gameOverUI.setGameOver(true);
+                if (player != null) {
+                    player.setGameOver(true);   // 把角色也鎖住
+                }
             }
         }
     }
@@ -104,14 +147,27 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     /**
      * 遊戲繪製
      */
+    @Override
     public void draw(Canvas canvas) {
         if (canvas == null) return;
         super.draw(canvas);
-        // 清空畫布（黑色背景）
-        canvas.drawColor(android.graphics.Color.BLACK);
 
-        // 繪製遊戲元素（由其他組員添加）
-        // 例：背景、地板、角色 等
+        // 清空畫布（黑色背景）
+        canvas.drawColor(Color.BLACK);
+
+        // A：畫地板（簡單一條線）
+        if (groundY > 0) {
+            Paint groundPaint = new Paint();
+            groundPaint.setColor(Color.GRAY);
+            groundPaint.setStrokeWidth(8f);
+            canvas.drawLine(0, groundY, canvas.getWidth(), groundY, groundPaint);
+        }
+
+        // A：畫角色
+        // 現在 Player.draw() 會優先畫動畫，有動畫才用 Sprite，沒有才退回畫矩形
+        if (player != null) {
+            player.draw(canvas, playerPaint);
+        }
 
         // 繪製血條
         hpBar.draw(canvas);
@@ -137,8 +193,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                         return true;
                     }
                 } else {
-                    // 遊戲進行中，角色跳躍事件（由組員 A 處理）
-                    // TODO: playerJump();
+                    // 遊戲進行中，角色跳躍事件
+                    if (player != null) {
+                        player.jump();
+                        return true;
+                    }
                 }
                 break;
         }
@@ -154,6 +213,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         gameOverUI.reset();
         gameTime = 0;
         lastUpdateTime = 0;
+
+        if (player != null) {
+            player.setGameOver(false);
+            player.setGroundY(groundY); // 確保地板高度正確
+            // 如果你希望重開遊戲時動畫回到跑步初始，也可以在 Player 裡多寫一個 reset()
+        }
 
         // TODO: 重置其他遊戲元素（角色、地板、障礙等）
     }
