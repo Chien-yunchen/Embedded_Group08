@@ -25,4 +25,11 @@ public class AnimationFactory {
                 200 // 單一張就不會循環，但這樣寫比較一致
         );
     }
+
+    public static Bitmap getCandyBitmap(Context context) {
+        return BitmapFactory.decodeResource(
+                context.getResources(),
+                R.drawable.candy  // candy.png
+        );
+    }
 }
