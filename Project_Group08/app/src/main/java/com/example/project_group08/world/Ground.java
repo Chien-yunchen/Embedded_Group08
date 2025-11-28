@@ -8,7 +8,7 @@ import android.graphics.BitmapFactory;
 import java.util.LinkedList;
 import java.util.Random;
 import android.util.Log;
-import com.example.project_group08..R;
+import com.example.project_group08.R;
 import com.example.project_group08.world.Gap; // 確保 Gap 類別已被正確引入
 
 /**
