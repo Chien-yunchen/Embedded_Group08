@@ -23,6 +23,9 @@ public class Player {
     private boolean isJumping = false;
     private boolean isGameOver = false;
 
+    // ⭐ 踩到洞洞後，忽略地板碰撞，讓角色自由落體
+    private boolean ignoreGroundCollision = false;
+
     // 地板高度（腳底的 Y），由外部提供
     private float groundY;
 
@@ -55,12 +58,6 @@ public class Player {
 
     /**
      * 由外部設定跑步 / 跳躍動畫
-     * 建議在 GameView 建立時這樣呼叫：
-     *
-     * player.setAnimations(
-     *     AnimationFactory.createRunAnimation(context),
-     *     AnimationFactory.createJumpAnimation(context)
-     * );
      */
     public void setAnimations(Animation runAnim, Animation jumpAnim) {
         this.runAnim = runAnim;
@@ -74,9 +71,8 @@ public class Player {
             Bitmap frame = runAnim.getFrame();
             if (frame != null) {
                 this.width = frame.getWidth() * 0.7f;
-                this.height = frame.getHeight() * 0.05f;  // ★ 角色往下 40~45%
+                this.height = frame.getHeight() * 0.05f;  // 保留你原本的設定
             }
-
         }
     }
 
@@ -95,6 +91,16 @@ public class Player {
         this.isGameOver = gameOver;
     }
 
+    /** 踩到洞洞時，忽略地板碰撞，開始往下掉 */
+    public void setIgnoreGroundCollision(boolean ignore) {
+        this.ignoreGroundCollision = ignore;
+
+        // 只要在洞洞上，就算是在空中 → 用跳躍 / 掉落動畫
+        if (ignore) {
+            this.isJumping = true;
+        }
+    }
+
     /** 對外的跳躍接口：不在空中、沒 GameOver 才能跳 */
     public void jump() {
         if (!isJumping && !isGameOver) {
@@ -108,12 +114,14 @@ public class Player {
         velocityY += GRAVITY;
         y += velocityY;
 
-        // 碰到地板就停下來，回到站立 / 跑步狀態
-        if (y >= groundY) {
+        // ⭐ 只有「沒有踩到洞洞」時才會被地板接住
+        if (!ignoreGroundCollision && y >= groundY) {
             y = groundY;
             velocityY = 0;
             isJumping = false;
         }
+        // 如果 ignoreGroundCollision == true → 不進來這個 if，
+        // 角色就會一路往下掉，直到 GameView 判定 Game Over。
     }
 
     /** 每一幀更新角色邏輯（垂直運動＋動畫） */
@@ -142,8 +150,6 @@ public class Player {
      * 畫出角色：
      * - 如果有動畫，就畫 sprite（動畫）
      * - 如果還沒設定動畫，就退回畫矩形
-     *
-     * 原本的 Paint 參數先保留（你如果想畫邊框當 debug 也可以用）
      */
     public void draw(Canvas canvas, Paint paint) {
         // 計算角色左上角位置（因為 y 是「腳底」、x 是「中心」）
@@ -156,7 +162,7 @@ public class Player {
             // 使用動畫貼圖
             sprite.draw(canvas, left, top);
 
-            // 如果你想同時畫出碰撞框，可以取消註解：
+            // debug 要看碰撞框可以打開這段：
             // if (paint != null) {
             //     canvas.drawRect(new RectF(left, top, right, bottom), paint);
             // }
@@ -173,6 +179,7 @@ public class Player {
         return x;
     }
 
+    /** 回傳腳底的 Y（給 Ground.isPlayerFalling 用） */
     public float getY() {
         return y;
     }
