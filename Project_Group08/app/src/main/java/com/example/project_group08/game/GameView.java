@@ -3,6 +3,7 @@ package com.example.project_group08.game;
 import com.example.project_group08.ui.HpBar;
 import com.example.project_group08.ui.GameOverUI;
 import com.example.project_group08.ui.StartMenuUI;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -27,7 +28,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private StartMenuUI startMenuUI;
 
     private Player player;
+
+    // ===== 修正重點：不要每幀 new Paint =====
     private Paint playerPaint;
+    private Paint groundPaint;
+
     private float groundY;
 
     private long lastUpdateTime = 0;
@@ -52,13 +57,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         getHolder().addCallback(this);
 
         hpBar = new HpBar();
-        gameOverUI = new GameOverUI(getWidth(), getHeight());
-        startMenuUI = new StartMenuUI(getWidth(), getHeight());
 
+        // ⚠️ 這裡不能用 getWidth()，因為還沒 layout → 會 = 0
+        // 因此 UI 類在 surfaceCreated 裡重新初始化（那裡寬高正確）
+        gameOverUI = new GameOverUI(1, 1);
+        startMenuUI = new StartMenuUI(1, 1);
+
+        // ====== 初始化 Paint（只 new 一次） ======
         playerPaint = new Paint();
         playerPaint.setColor(Color.WHITE);
         playerPaint.setStyle(Paint.Style.FILL);
 
+        groundPaint = new Paint();
+        groundPaint.setColor(Color.GRAY);
+        groundPaint.setStrokeWidth(8f);
+
+        // 遊戲執行緒
         gameThread = new GameThread(getHolder(), this);
     }
 
@@ -67,11 +81,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int width = getWidth();
         int height = getHeight();
 
+        // ====== UI 尺寸要在這裡初始化（此時寬高正確） ======
         gameOverUI = new GameOverUI(width, height);
         startMenuUI = new StartMenuUI(width, height);
 
         groundY = height * 0.75f;
 
+        // Player 初始化
         player = new Player(width, groundY);
         player.setAnimations(
                 AnimationFactory.createRunAnimation(getContext()),
@@ -85,7 +101,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
@@ -126,6 +142,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             hpBar.update(deltaTime);
             gameOverUI.updateSurvivalTime(deltaTime);
 
+            // HP 歸零 → 遊戲結束
             if (hpBar.isGameOver()) {
                 gameOverUI.setGameOver(true);
                 if (player != null) {
@@ -143,37 +160,42 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         if (canvas == null) return;
         super.draw(canvas);
 
-        // 如果還沒開始，只畫開始選單
+        // 若未開始 → 只畫開始 UI
         if (!startMenuUI.isStarted()) {
             startMenuUI.draw(canvas);
             return;
         }
 
-        // 清空畫布（黑色背景）
+        // 清空背景
         canvas.drawColor(Color.BLACK);
 
-        // 畫地板
+        // ====== 畫地板（已修正：不再每幀 new Paint） ======
+        // 畫地板線
         if (groundY > 0) {
-            Paint groundPaint = new Paint();
-            groundPaint.setColor(Color.GRAY);
-            groundPaint.setStrokeWidth(8f);
-            canvas.drawLine(0, groundY, canvas.getWidth(), groundY, groundPaint);
+            canvas.drawLine(
+                    0,
+                    groundY,
+                    canvas.getWidth(),
+                    groundY,
+                    groundPaint
+            );
         }
+
 
         // 畫角色
         if (player != null) {
             player.draw(canvas, playerPaint);
         }
 
-        // 繪製血條
+        // 畫血條
         hpBar.draw(canvas);
 
-        // 最後繪製遊戲結束畫面
+        // 畫遊戲結束 UI
         gameOverUI.draw(canvas);
     }
 
     /**
-     * 處理觸摸事件
+     * 觸控事件
      */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -182,7 +204,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                // 如果還沒開始，處理開始選單點擊
+
+                // 尚未開始 → 處理開始畫面
                 if (!startMenuUI.isStarted()) {
                     if (startMenuUI.onTouchEvent(touchX, touchY)) {
                         lastUpdateTime = 0;
@@ -191,14 +214,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     return true;
                 }
 
-                // 如果遊戲結束，檢查是否點擊了重新開始按鈕
+                // 遊戲結束 → 檢查是否按下 "重新開始"
                 if (gameOverUI.getIsGameOver()) {
                     if (gameOverUI.onTouchEvent(touchX, touchY)) {
                         restartGame();
                         return true;
                     }
                 } else {
-                    // 遊戲進行中，角色跳躍
+                    // 遊戲中 → 跳躍
                     if (player != null) {
                         player.jump();
                         return true;
@@ -211,7 +234,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     /**
-     * 重新開始遊戲
+     * 重新開始
      */
     private void restartGame() {
         hpBar.reset();
@@ -225,20 +248,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
-    // Getter 方法
-    public HpBar getHpBar() {
-        return hpBar;
-    }
-
-    public GameOverUI getGameOverUI() {
-        return gameOverUI;
-    }
-
-    public StartMenuUI getStartMenuUI() {
-        return startMenuUI;
-    }
-
-    public float getGameTime() {
-        return gameTime;
-    }
+    // Getter
+    public HpBar getHpBar() { return hpBar; }
+    public GameOverUI getGameOverUI() { return gameOverUI; }
+    public StartMenuUI getStartMenuUI() { return startMenuUI; }
+    public float getGameTime() { return gameTime; }
 }
