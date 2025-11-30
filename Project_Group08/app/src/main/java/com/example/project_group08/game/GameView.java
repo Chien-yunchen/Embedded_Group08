@@ -170,8 +170,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int h = getHeight();
 
         ground = new Ground(getContext(), w, h);
-        float groundY = Ground.GROUND_COLLISION_Y;
-
+        float groundY = Ground.GROUND_COLLISION_Y+40;
         player = new Player(w, groundY);
         player.setAnimations(
                 AnimationFactory.createRunAnimation(getContext()),

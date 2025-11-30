@@ -13,17 +13,13 @@ import java.util.Random;
 
 public class Ground {
 
-    // 地板圖片的實際高度（依照你的 floor 圖來）
-    private static final int GROUND_HEIGHT = 747;
-    private static final int TILE_WIDTH = 1024;
+    // === 調整後的參數 ===
+    private static final int TILE_WIDTH = 1024;    // 單一地板圖片寬
     private static final int SCROLL_SPEED = 10;
     private static final int GAP_PERCENT_CHANCE = 70;
 
-    // ★ 地板頂端（畫地板用）
-    public static int GROUND_TOP_POSITION;
-
-    // ★ 角色腳底碰撞高度（讓腳剛好貼在草皮上，可以微調）
-    public static int GROUND_COLLISION_Y;
+    public static int GROUND_TOP_POSITION;      // 地板開始 Y
+    public static int GROUND_COLLISION_Y;       // 薑餅人腳底 Y（用於落地判斷）
 
     private Bitmap floorBitmap;
     private Bitmap gapBitmap;
@@ -35,64 +31,64 @@ public class Ground {
     private final LinkedList<GroundTile> tiles = new LinkedList<>();
     private final Random random = new Random();
 
-    private final Rect skyRect = new Rect();
     private final Rect destRect = new Rect();
 
     private class GroundTile {
         Bitmap bitmap;
         int x;
         GroundTile(Bitmap bm, int startX) {
-            this.bitmap = bm;
-            this.x = startX;
+            bitmap = bm;
+            x = startX;
         }
     }
 
     public Ground(Context context, int screenW, int screenH) {
-        this.screenWidth = screenW;
-        this.screenHeight = screenH;
+        screenWidth = screenW;
+        screenHeight = screenH;
 
-        // 1️⃣ 先決定地板要畫在哪裡：
-        //    讓整塊地板剛好貼到底部
-        GROUND_TOP_POSITION = screenH - GROUND_HEIGHT;
+        // ⭐ 讓地板高度占畫面 35%（比以前自然）
+        int groundHeight = (int)(screenH * 0.35f);
 
-        // 2️⃣ 草皮不在整張圖的最底下，大概再往下移一點點
-        //    這裡先抓一個估計值（你之後可以微調這個 80）
-        int grassOffset = 80;   // 草皮厚度估計
-        GROUND_COLLISION_Y = GROUND_TOP_POSITION + grassOffset;
+        // ⭐ 地板開始位置：從螢幕底部往上 groundHeight
+        GROUND_TOP_POSITION = screenH - groundHeight;
 
-        // 讀圖片
+        // ⭐ 薑餅人腳底碰撞高度（草皮上緣，適度往下）
+        GROUND_COLLISION_Y = GROUND_TOP_POSITION + 60;
+
+        // === 載入圖片 ===
         Bitmap rawFloor = BitmapFactory.decodeResource(context.getResources(), R.drawable.floor);
         Bitmap rawGap   = BitmapFactory.decodeResource(context.getResources(), R.drawable.floor_w_hole);
         Bitmap rawSky   = BitmapFactory.decodeResource(context.getResources(), R.drawable.sky);
 
-        // 地板縮放成固定高度
-        floorBitmap = Bitmap.createScaledBitmap(rawFloor, TILE_WIDTH, GROUND_HEIGHT, true);
-        gapBitmap   = Bitmap.createScaledBitmap(rawGap,   TILE_WIDTH, GROUND_HEIGHT, true);
+        // ⭐ 天空直接鋪滿整個畫布（最重要：這樣永遠不會有黑縫）
+        skyBitmap = Bitmap.createScaledBitmap(rawSky, screenW, screenH, true);
 
-        // 天空依比例縮放成螢幕寬，高度維持比例（不被壓扁）
-        float skyScale = screenW / (float) rawSky.getWidth();
-        int skyH = (int) (rawSky.getHeight() * skyScale);
-        skyBitmap = Bitmap.createScaledBitmap(rawSky, screenW, skyH, true);
+        // ⭐ 地板依照固定高度縮放
+        floorBitmap = Bitmap.createScaledBitmap(rawFloor, TILE_WIDTH, groundHeight, true);
+        gapBitmap   = Bitmap.createScaledBitmap(rawGap,   TILE_WIDTH, groundHeight, true);
 
-        // 預先填滿地板
-        int currentX = 0;
-        while (currentX < screenW + TILE_WIDTH) {
-            tiles.add(new GroundTile(floorBitmap, currentX));
-            currentX += TILE_WIDTH;
+        // === 初始化地板 tiles ===
+        int x = 0;
+        while (x < screenW + TILE_WIDTH) {
+            tiles.add(new GroundTile(floorBitmap, x));
+            x += TILE_WIDTH;
         }
     }
 
     public void update() {
         if (tiles.isEmpty()) return;
 
+        // 移動
         for (GroundTile tile : tiles) {
             tile.x -= SCROLL_SPEED;
         }
 
+        // 左邊移出畫面就刪除
         while (!tiles.isEmpty() && tiles.getFirst().x + TILE_WIDTH < 0) {
             tiles.removeFirst();
         }
 
+        // 右邊補 tiles
         while (!tiles.isEmpty() && tiles.getLast().x + TILE_WIDTH < screenWidth + TILE_WIDTH) {
             generateNextTile();
         }
@@ -101,41 +97,43 @@ public class Ground {
     public void draw(Canvas canvas) {
         if (canvas == null) return;
 
-        // 天空畫到 GROUND_TOP_POSITION（中間不會有黑縫）
-        skyRect.set(0, 0, screenWidth, GROUND_TOP_POSITION);
-        canvas.drawBitmap(skyBitmap, null, skyRect, null);
+        // 1️⃣ 先畫天空（鋪滿整個畫面，不會有黑縫）
+        canvas.drawBitmap(skyBitmap, null, new Rect(0, 0, screenWidth, screenHeight), null);
 
-        // 地板從 GROUND_TOP_POSITION 開始往下畫
+        // 2️⃣ 再畫地板（從 GROUND_TOP_POSITION 開始）
         for (GroundTile tile : tiles) {
-            if (tile.bitmap == null) continue;
-            if (tile.x >= screenWidth || tile.x + TILE_WIDTH <= 0) continue;
-
             destRect.set(
                     tile.x,
                     GROUND_TOP_POSITION,
                     tile.x + TILE_WIDTH,
-                    GROUND_TOP_POSITION + GROUND_HEIGHT
+                    GROUND_TOP_POSITION + floorBitmap.getHeight()
             );
             canvas.drawBitmap(tile.bitmap, null, destRect, null);
         }
     }
 
     private void generateNextTile() {
-        int lastX = tiles.getLast().x + TILE_WIDTH;
-        Bitmap bm = (random.nextInt(100) < GAP_PERCENT_CHANCE) ? gapBitmap : floorBitmap;
-        tiles.add(new GroundTile(bm, lastX));
+        int nextX = tiles.getLast().x + TILE_WIDTH;
+
+        Bitmap bm = (random.nextInt(100) < GAP_PERCENT_CHANCE)
+                ? gapBitmap
+                : floorBitmap;
+
+        tiles.add(new GroundTile(bm, nextX));
     }
 
     public boolean isPlayerFalling(int playerX, int playerY) {
-        // 腳底還在草皮線之上就不可能掉
         if (playerY < GROUND_COLLISION_Y) return false;
 
         for (GroundTile tile : tiles) {
             if (playerX >= tile.x && playerX < tile.x + TILE_WIDTH) {
-                if (Gap.checkFalling(playerX, tile.bitmap, tile.x, gapBitmap, TILE_WIDTH)) {
-                    return true;
-                }
-                return false;
+                return Gap.checkFalling(
+                        playerX,
+                        tile.bitmap,
+                        tile.x,
+                        gapBitmap,
+                        TILE_WIDTH
+                );
             }
         }
         return false;

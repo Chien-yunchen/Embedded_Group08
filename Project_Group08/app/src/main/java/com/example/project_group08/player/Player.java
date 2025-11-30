@@ -73,9 +73,10 @@ public class Player {
             // 根據第一張圖來調整寬高，讓碰撞盒跟圖片一致
             Bitmap frame = runAnim.getFrame();
             if (frame != null) {
-                this.width = frame.getWidth();
-                this.height = frame.getHeight();
+                this.width = frame.getWidth() * 0.7f;
+                this.height = frame.getHeight() * 0.05f;  // ★ 角色往下 40~45%
             }
+
         }
     }
 
