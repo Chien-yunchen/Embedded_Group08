@@ -8,6 +8,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -16,6 +17,7 @@ import android.view.SurfaceView;
 import com.example.project_group08.player.Player;
 import com.example.project_group08.player.AnimationFactory;
 import com.example.project_group08.world.Ground;
+import com.example.project_group08.world.Candy;   // ⭐ 新增：糖果
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
@@ -26,6 +28,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private Player player;
     private Ground ground;
+    private Candy candy;          // ⭐ 新增：糖果管理器
 
     private Paint playerPaint;
 
@@ -64,6 +67,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // 先 new Ground，讓它算好 GROUND_COLLISION_Y
         ground = new Ground(getContext(), width, height);
 
+        // ⭐ 再 new Candy，裡面會用到 Ground.GROUND_COLLISION_Y
+        candy  = new Candy(getContext(), width, height);
+
         // Player 的腳底高度 = Ground 的碰撞高度
         float groundY = Ground.GROUND_COLLISION_Y;
 
@@ -98,25 +104,61 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             ground.update();
         }
 
-        // 2️⃣ 還沒 GameOver 的情況下，才判斷是否踩到洞洞 & HP 歸零
-        if (!gameOverUI.getIsGameOver() && ground != null && player != null) {
+        // ⭐ 不管有沒有 GameOver，糖果也要跟著地板移動
+        if (candy != null && ground != null) {
+            candy.update(ground);
+        }
 
-            if (!hasFallen) {
-                // 只在「還沒掉進洞」時檢查一次
-                boolean isOnHole = ground.isPlayerFalling(
-                        (int) player.getX(),   // 角色固定 X
-                        (int) player.getY()    // 腳底 Y
-                );
+        // 2️⃣ 還沒 GameOver 的情況下，才判斷是否踩到洞洞 & HP 歸零 & 吃糖果
+        if (!gameOverUI.getIsGameOver()) {
 
-                if (isOnHole) {
-                    // 第一次掉進洞
-                    hasFallen = true;
-                    player.setIgnoreGroundCollision(true); // 後續不再被地板接住
-                    gameOverUI.setGameOver(true);          // 立刻顯示遊戲結束畫面
-                } else {
-                    // 正常跑在地板上
-                    player.setIgnoreGroundCollision(false);
+            // 2-1 掉洞洞判斷
+            if (ground != null && player != null) {
+
+                if (!hasFallen) {
+                    // 只在「還沒掉進洞」時檢查一次
+                    boolean isOnHole = ground.isPlayerFalling(
+                            (int) player.getX(),   // 角色固定 X
+                            (int) player.getY()    // 腳底 Y
+                    );
+
+                    if (isOnHole) {
+                        // 第一次掉進洞
+                        hasFallen = true;
+                        player.setIgnoreGroundCollision(true); // 後續不再被地板接住
+                        gameOverUI.setGameOver(true);          // 立刻顯示遊戲結束畫面
+                    } else {
+                        // 正常跑在地板上
+                        player.setIgnoreGroundCollision(false);
+                    }
                 }
+            }
+
+            // 2-2 吃糖果判斷（只有在還沒掉洞、還沒 GameOver 時才會吃到）
+            if (!hasFallen && player != null && candy != null) {
+                Rect playerRect = player.getCollisionRect();
+                int collectedCount = candy.setCollected(playerRect).size();
+
+                if (collectedCount > 0) {
+                    // 👉 這裡就是「成功吃到糖果」的地方
+                    // 目前效果：糖果會被標記 collected，在 Candy.update() 裡移除，不再畫出
+                    // 如果之後 C 組要加血 / 計分，可以在 HpBar 裡加一個方法，再在這裡呼叫：
+                    //
+                    // hpBar.addCandyCount(collectedCount);
+                    //
+                    // 這樣這支檔案就不用再改太多。
+                }
+            }
+
+            // 2-3 HP / 存活時間（只在未 GameOver 時更新）
+            gameTime += deltaTime;
+            hpBar.update(deltaTime);
+            gameOverUI.updateSurvivalTime(deltaTime);
+
+            // HP 歸零的 Game Over：只在「還沒掉洞洞」時才會生效
+            if (!hasFallen && hpBar.isGameOver()) {
+                gameOverUI.setGameOver(true);
+                if (player != null) player.setGameOver(true);
             }
         }
 
@@ -137,19 +179,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 player.setGameOver(true);
             }
         }
-
-        // 5️⃣ HP / 存活時間只在未 GameOver 時更新
-        if (!gameOverUI.getIsGameOver()) {
-            gameTime += deltaTime;
-            hpBar.update(deltaTime);
-            gameOverUI.updateSurvivalTime(deltaTime);
-
-            // HP 歸零的 Game Over：只在「還沒掉洞洞」時才會生效
-            if (!hasFallen && hpBar.isGameOver()) {
-                gameOverUI.setGameOver(true);
-                if (player != null) player.setGameOver(true);
-            }
-        }
     }
 
     @Override
@@ -166,7 +195,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         if (ground != null) ground.draw(canvas);
 
-        // ⭐ Player 會自己掉出螢幕；掉出畫面後因 Y > 螢幕高度，就自然看不到
+        // ⭐ 先畫糖果，再畫角色，角色會疊在糖果上面
+        if (candy != null)  candy.draw(canvas);
+
+        // Player 會自己掉出螢幕；掉出畫面後因 Y > 螢幕高度，就自然看不到
         if (player != null) player.draw(canvas, playerPaint);
 
         hpBar.draw(canvas);
@@ -217,7 +249,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int h = getHeight();
 
         ground = new Ground(getContext(), w, h);
-        float groundY = Ground.GROUND_COLLISION_Y + 40; // 覺得太低可以改回不要 +40
+        candy  = new Candy(getContext(), w, h);               // ⭐ 重建糖果
+        float groundY = Ground.GROUND_COLLISION_Y + 40;       // 覺得太低可以改回不要 +40
         player = new Player(w, groundY);
         player.setAnimations(
                 AnimationFactory.createRunAnimation(getContext()),
