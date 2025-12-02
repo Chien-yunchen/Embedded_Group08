@@ -140,13 +140,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 int collectedCount = candy.setCollected(playerRect).size();
 
                 if (collectedCount > 0) {
-                    // 👉 這裡就是「成功吃到糖果」的地方
-                    // 目前效果：糖果會被標記 collected，在 Candy.update() 裡移除，不再畫出
-                    // 如果之後 C 組要加血 / 計分，可以在 HpBar 裡加一個方法，再在這裡呼叫：
-                    //
-                    // hpBar.addCandyCount(collectedCount);
-                    //
-                    // 這樣這支檔案就不用再改太多。
+                    // 👉 成功吃到糖果！
+                    // ⭐ 這行很重要：告訴 HpBar 吃到了 collectedCount 顆糖果
+                    // HpBar 會自動計數，累積到 50 顆時自動回血 25 HP
+                    hpBar.addCandyCount(collectedCount);
                 }
             }
 
