@@ -70,9 +70,9 @@ public class GameOverUI {
         buttonTextPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         buttonTextPaint.setShadowLayer(5, 2, 2, Color.BLACK);
 
-        // 重新開始按鈕位置 - 更靠下，與生存時間分開更遠
+        // 重新開始按鈕位置 - 更靠下
         float buttonCenterX = screenWidth / 2f;
-        float buttonCenterY = screenHeight / 2f + 280;  // 從 180 改到 280，更靠下
+        float buttonCenterY = screenHeight / 2f + 200;  // 調整位置到中間偏下
         float buttonWidth = 320;
         float buttonHeight = 140;
 
@@ -126,13 +126,7 @@ public class GameOverUI {
 
         canvas.restore();
 
-        // 繪製存活時間
-        canvas.drawText("生存時間: " + survivalTime + " 秒",
-                screenWidth / 2f,
-                screenHeight / 2f + 80,
-                timePaint);
-
-        // 繪製重新開始按鈕 - 與生存時間分開更遠
+        // 繪製重新開始按鈕
         canvas.drawRoundRect(restartButton, 40, 40, buttonPaint);
         canvas.drawRoundRect(restartButton, 40, 40, buttonBorderPaint);
 
