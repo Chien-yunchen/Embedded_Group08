@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.util.Log;
+
 import com.example.project_group08.R;
 
 import java.util.Iterator;
@@ -18,38 +19,36 @@ import java.util.Random;
 public class Candy {
 
     // --- 遊戲常數 ---
-    private static final int CANDY_SIZE = 50; // 糖果顯示大小 (像素)
-    private static final int SCROLL_SPEED = 10; // 應與 Ground.SCROLL_SPEED 保持一致
+    private static final int CANDY_SIZE = 50;      // 糖果顯示大小 (像素)
+    private static final int SCROLL_SPEED = 10;    // 應與 Ground.SCROLL_SPEED 保持一致
 
     // 糖果生成的位置範圍
-    private static final int CANDY_Y_BASE_OFFSET = 100; // 糖果在 地板碰撞點上方 100 像素處
-    private static final int ARCH_PEAK_OFFSET = 150; // 拱形最高點距離地板碰撞點上方 150 像素處
-    private static final int ARCH_WIDTH = 400; // 拱形的水平寬度 (像素)
+    private static final int CANDY_Y_BASE_OFFSET = 100;   // 糖果在 地板碰撞點上方 100 像素處
+    private static final int ARCH_PEAK_OFFSET = 150;      // 拱形最高點距離地板碰撞點上方 150 像素處
+    private static final int ARCH_WIDTH = 400;            // 拱形的水平寬度 (像素)
 
-    // 生成機率
-    private static final int SPAWN_DISTANCE = 300; // 每隔 300 像素生成一組糖果
-    private static final int PATTERN_CHANCE = 75; // 75% 的機率生成糖果模式 (25% 機率不生成)
+    // 生成機率（可以自己微調）
+    private static final int SPAWN_DISTANCE = 500;        // ⭐ 每隔 500 像素生成一組糖果（變比較稀疏）
+    private static final int PATTERN_CHANCE = 75;         // 75% 的機率生成糖果模式 (25% 機率不生成)
     private static final int ARCH_CHANCE_FLAT_GROUND = 20; // 平地時 20% 機率生成拱形
-    private static final int ARCH_CHANCE_GAP_ZONE = 80; // 洞洞區 80% 機率生成拱形
+    private static final int ARCH_CHANCE_GAP_ZONE = 80;    // 洞洞區 80% 機率生成拱形
 
     // --- 狀態 ---
     private final LinkedList<CandyItem> candies = new LinkedList<>();
     private final Random random = new Random();
     private Bitmap candyBitmap;
     private int screenWidth;
-    private int lastSpawnX = 0; // 追蹤上次生成糖果的 X 座標
 
-    // 根據 Ground.TILE_WIDTH=1024 設定
-    private static final int GROUND_TILE_WIDTH = 1024;
+    // ⭐ 改成用「距離」來決定何時生成下一批糖果
+    private int distanceSinceLastSpawn = 0;
 
     /**
      * 內部類別：代表單個糖果物件
-     * 🚨 修正：新增 isCollected 狀態和方法
      */
     public class CandyItem {
         int x;
         int y;
-        private boolean collected = false; // 新增：是否被收集的狀態
+        private boolean collected = false; // 是否被收集的狀態
         final Rect destRect = new Rect();
 
         CandyItem(int x, int y) {
@@ -62,31 +61,22 @@ public class Candy {
             canvas.drawBitmap(bitmap, null, destRect, null);
         }
 
-        // 組員 A 呼叫：檢查是否被收集
         public boolean isCollected() {
             return collected;
         }
 
-        // 組員 B 呼叫：標記為已被收集
         public void setCollected(boolean collected) {
             this.collected = collected;
         }
 
-        // 幫助組員 A 做碰撞判斷 (Getter)
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
+        public int getX() { return x; }
+        public int getY() { return y; }
     }
 
     public Candy(Context context, int screenW, int screenH) {
         this.screenWidth = screenW;
-        this.lastSpawnX = 0;
 
-        // 載入糖果圖片 (確認 200x200 縮放為 50x50)
+        // 載入糖果圖片
         Bitmap rawCandy = BitmapFactory.decodeResource(context.getResources(), R.drawable.candy);
         if (rawCandy != null) {
             candyBitmap = Bitmap.createScaledBitmap(rawCandy, CANDY_SIZE, CANDY_SIZE, true);
@@ -94,29 +84,22 @@ public class Candy {
             Log.e("Candy", "Candy bitmap (candy.png) failed to load. Check R.drawable.candy.");
         }
 
-        // 初始生成點設定在第二塊地板開始處 (X=1024)，確保遊戲開始就有糖果
-        this.lastSpawnX = GROUND_TILE_WIDTH;
-
-        // 確保初始生成邏輯運行一次，避免遊戲開始時沒有糖果
-        generateInitialCandy(context);
+        // ⭐ 一開始就先在畫面中間附近生成一小排糖果，讓玩家一開始就看得到
+        generateInitialCandy();
     }
 
     /**
-     * 專門用於初始化，確保遊戲開始時第二塊地板有糖果
+     * 專門用於初始化，確保遊戲開始時畫面上就有糖果
      */
-    private void generateInitialCandy(Context context) {
-        // 首次生成直線 (與 Ground 初始狀態的 FLOOR_TILE 匹配)
-        int spawnX = GROUND_TILE_WIDTH + SPAWN_DISTANCE;
+    private void generateInitialCandy() {
+        int spawnX = screenWidth / 2;  // 在畫面中間右邊一點
         int startY = Ground.GROUND_COLLISION_Y - CANDY_Y_BASE_OFFSET;
-
         spawnStraight(spawnX, startY);
-        lastSpawnX = spawnX;
+        distanceSinceLastSpawn = 0;    // 重置距離累積
     }
-
 
     /**
      * 更新糖果位置並處理生成邏輯
-     * 🚨 修正：現在 update 負責移除被收集和滾出螢幕的糖果
      *
      * @param ground Ground 實例
      */
@@ -127,10 +110,10 @@ public class Candy {
             CandyItem candy = it.next();
             candy.x -= SCROLL_SPEED;
 
-            // 🚨 修正：移除被收集的糖果
+            // 移除被收集的糖果
             if (candy.isCollected()) {
                 it.remove();
-                continue; // 繼續檢查下一個
+                continue;
             }
 
             // 移除滾出螢幕左側的糖果
@@ -139,16 +122,19 @@ public class Candy {
             }
         }
 
-        // 2. 決定是否生成新的糖果
-        // 只有當上一個生成點滾動到螢幕右側 SPAWN_DISTANCE 以外時，才嘗試生成
-        if (lastSpawnX - SCROLL_SPEED < screenWidth + SPAWN_DISTANCE) {
+        // 2. 累積捲動距離
+        distanceSinceLastSpawn += SCROLL_SPEED;
 
-            int spawnX = lastSpawnX + SPAWN_DISTANCE;
+        // 每累積超過 SPAWN_DISTANCE，就嘗試生成一組新的糖果
+        if (distanceSinceLastSpawn >= SPAWN_DISTANCE) {
 
-            // 查詢 Ground 是否為 Gap 區域。
-            boolean isGapZone = ground.isXCoordinateGap(spawnX);
+            // 在螢幕右邊外面一點生成（慢慢滑進畫面）
+            int spawnX = screenWidth + 50;
 
-            // 如果不在 PATTERN_CHANCE 內，則不生成（偶爾不生成，實現要求）
+            // 查詢 Ground：這個 X 大致上是不是洞洞區
+            boolean isGapZone = (ground != null) && ground.isXCoordinateGap(spawnX);
+
+            // 只有在 PATTERN_CHANCE 範圍內才真的生成糖果
             if (random.nextInt(100) < PATTERN_CHANCE) {
 
                 int startY = Ground.GROUND_COLLISION_Y - CANDY_Y_BASE_OFFSET;
@@ -156,30 +142,33 @@ public class Candy {
                 if (isGapZone) {
                     // --- 洞口區 (Gap) 生成邏輯 ---
                     if (random.nextInt(100) < ARCH_CHANCE_GAP_ZONE) {
+                        // 在洞洞上方生成拱形糖果
                         spawnArch(spawnX, Ground.GROUND_COLLISION_Y - ARCH_PEAK_OFFSET, ARCH_WIDTH);
                     } else {
-                        // 不生成 (實現 "有洞時不生成" 的部分要求)
+                        // 不生成（保留一些空白區）
                     }
 
                 } else {
                     // --- 平地區 (Floor) 生成邏輯 ---
                     if (random.nextInt(100) < ARCH_CHANCE_FLAT_GROUND) {
+                        // 偶爾在平地也來一個拱形
                         spawnArch(spawnX, Ground.GROUND_COLLISION_Y - ARCH_PEAK_OFFSET, ARCH_WIDTH);
                     } else {
-                        // 直線生成 (大部分情況)
+                        // 大部分情況生成一條直線糖果
                         spawnStraight(spawnX, startY);
                     }
                 }
             }
 
-            lastSpawnX = spawnX;
+            // 重置距離累積
+            distanceSinceLastSpawn = 0;
         }
     }
 
     // 獨立生成方法：生成直線 (平地)
     private void spawnStraight(int startX, int startY) {
-        int count = random.nextInt(4) + 4;
-        int spacing = 80;
+        int count = random.nextInt(4) + 4;  // 4~7 顆
+        int spacing = 80;                   // 每顆間隔 80 像素
         for (int i = 0; i < count; i++) {
             candies.add(new CandyItem(startX + i * spacing, startY));
         }
@@ -205,14 +194,12 @@ public class Candy {
         }
     }
 
-
     /**
      * 繪製所有糖果
      */
     public void draw(Canvas canvas) {
         if (candyBitmap == null) return;
         for (CandyItem candy : candies) {
-            // 只繪製未被收集的糖果
             if (!candy.isCollected()) {
                 candy.draw(canvas, candyBitmap);
             }
@@ -220,21 +207,22 @@ public class Candy {
     }
 
     /**
-     * 檢查角色是否碰到糖果 (給 Player.java 呼叫)
-     * 🚨 修正：將碰撞到的糖果標記為 Collected，不再從主列表移除
+     * 檢查角色是否碰到糖果
      *
      * @param playerRect 玩家角色的 Rect 邊界
-     * @return 碰到的糖果列表 (以便 Player 移除它)
+     * @return 碰到的糖果列表
      */
     public LinkedList<CandyItem> setCollected(Rect playerRect) {
-        if (candyBitmap == null) return new LinkedList<>();
-
         LinkedList<CandyItem> collected = new LinkedList<>();
-        for (CandyItem candy : candies) {
-            // 只有未被收集的糖果才需要檢查碰撞
-            if (!candy.isCollected() && playerRect.intersects(candy.x, candy.y, candy.x + CANDY_SIZE, candy.y + CANDY_SIZE)) {
+        if (candyBitmap == null) return collected;
 
-                candy.setCollected(true); // 標記為已被收集
+        for (CandyItem candy : candies) {
+            if (!candy.isCollected()
+                    && playerRect.intersects(candy.x, candy.y,
+                    candy.x + CANDY_SIZE,
+                    candy.y + CANDY_SIZE)) {
+
+                candy.setCollected(true);
                 collected.add(candy);
             }
         }
