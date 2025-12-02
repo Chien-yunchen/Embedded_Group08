@@ -3,6 +3,7 @@ package com.example.project_group08.player;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 
 /**
@@ -190,5 +191,21 @@ public class Player {
 
     public boolean isGameOver() {
         return isGameOver;
+    }
+
+    // ⭐ 新增：回傳角色的碰撞框（給 Candy 做碰撞判斷）
+    public Rect getCollisionRect() {
+        float left = x - width / 2f;
+        float top = y - height;
+        float right = left + width;
+        float bottom = top + height;
+
+        // 也可以視覺上縮小一點碰撞框，例如 *0.8f，有需要再調
+        return new Rect(
+                (int) left,
+                (int) top,
+                (int) right,
+                (int) bottom
+        );
     }
 }
